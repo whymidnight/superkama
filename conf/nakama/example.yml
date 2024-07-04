@@ -1,5 +1,4 @@
-shutdown_grace_sec: 0
-data_dir: "/nakama/data"
+shutdown_grace_sec: 5
 logger:
   level: "DEBUG"
   stdout: true
@@ -29,7 +28,7 @@ session:
 socket:
   server_key: "defaultkey"
   port: 7350
-  address: ""
+  address: "0.0.0.0"
   protocol: "tcp"
   max_message_size_bytes: 4096
   max_request_size_bytes: 262144
@@ -65,7 +64,6 @@ social:
     bundle_id: ""
 runtime:
   env: []
-  path: "/nakama/data/modules"
   http_key: "defaulthttpkey"
   min_count: 0
   lua_min_count: 16
@@ -97,7 +95,7 @@ tracker:
   event_queue_size: 1024
 console:
   port: 7351
-  address: ""
+  address: "0.0.0.0"
   max_message_size_bytes: 4194304
   read_timeout_ms: 10000
   write_timeout_ms: 60000
@@ -173,11 +171,11 @@ cluster:
   weight: 0
   balancer: 0
   grpc:
-    addr: ""
-    port: 23422
-    minPort: 30000
-    maxPort: 40000
-    domain: ""
+    addr: "0.0.0.0"
+    port: 9437
+    minPort: 0
+    maxPort: 0
+    domain: "nakama.midnight.why"
     dial_timeout: 5
     backoff_max_delay: 3
     keep_alive_time: 10
@@ -190,10 +188,10 @@ cluster:
     max_active: 65535
     max_concurrent_streams: 65535
     reuse: true
-    ca_cert: ""
+    ca_cert: "/etc/ssl/ca.pem"
     server_name_override: ""
-    server_cert_pem: ""
-    server_cert_key: ""
+    server_cert_pem: "/etc/ssl/cert.pem"
+    server_cert_key: "/etc/ssl/privkey.pem"
     access_token: ""
     message_queue_size: 128
     allow_retry: true

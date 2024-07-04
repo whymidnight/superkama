@@ -1,1 +1,4 @@
 !*/**/.gitkeep
+data/crdb/**
+data/nakama/**
+data/etcd/**

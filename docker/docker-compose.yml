@@ -1,9 +1,38 @@
 version: "2.4"
 services:
+  envoy:
+    ipc: host
+    image: envoyproxy/envoy:v1.26-latest
+    restart: "always"
+    networks:
+      - nakama-net
+    depends_on:
+      nakama:
+        condition: service_healthy
+    expose:
+      - "7348"
+      - "7349"
+      - "7350"
+      - "7351"
+      - "9901"
+    ports:
+      - "7348:7348"
+      - "7349:7349"
+      - "7350:7350"
+      - "7351:7351"
+      - "43594:9901"
+    volumes:
+      - ../conf/envoy/example.yml:/etc/envoy/envoy.yaml
+      - ../conf/ssl/ca.pem:/etc/ssl/ca.pem
+      - ../conf/ssl/cert.pem:/etc/ssl/cert.pem
+      - ../conf/ssl/privkey.pem:/etc/ssl/privkey.pem
+
   cockroachdb:
+    networks:
+      - nakama-net
     image: cockroachdb/cockroach:latest-v23.1
     command: start-single-node --insecure --store=attrs=ssd,path=/var/lib/cockroach/
-    restart: "no"
+    restart: "always"
     volumes:
       - ../data/crdb:/var/lib/cockroach
     expose:
@@ -19,13 +48,14 @@ services:
       retries: 5
 
   etcd:
+    networks:
+      - nakama-net
     image: docker.io/bitnami/etcd:3.5.8-debian-11-r0
     healthcheck:
       test: ["CMD", "/opt/bitnami/scripts/etcd/healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
@@ -42,7 +72,7 @@ services:
       - ../data/etcd:/bitnami/etcd/data
 
   nakama:
-    scale: 2
+    scale: 3
     build:
       context: ../pkgs/nakama-plus
       dockerfile: ./build/Dockerfile.local
@@ -52,8 +82,9 @@ services:
       - "-ecx"
       - >
         /nakama/nakama migrate up --database.address root@cockroachdb:26257 &&
-        exec /nakama/nakama --name "$${HOSTNAME}" --database.address root@cockroachdb:26257 --logger.level DEBUG --session.token_expiry_sec 7200 --metrics.prometheus_port 9100 --config /nakama/config.yml
-    restart: "no"
+        mkdir -p "/nakama/data/$$(dig -x $$(hostname -i) +short | cut -d . -f 1)/modules" &&
+        exec /nakama/nakama --name "$$(dig -x $$(hostname -i) +short | cut -d . -f 1)" --data_dir "/nakama/data/$$(dig -x $$(hostname -i) +short | cut -d . -f 1)" --runtime.path "/nakama/data/$$(dig -x $$(hostname -i) +short | cut -d . -f 1)/modules" --database.address root@cockroachdb:26257 --logger.level DEBUG --session.token_expiry_sec 7200 --metrics.prometheus_port 9100 --config /nakama/config.yml
+    restart: "always"
     links:
       - "cockroachdb:db"
     depends_on:
@@ -65,16 +96,19 @@ services:
         condition: service_started
     volumes:
       - ../data/nakama:/nakama/data
-      - ../config.yml:/nakama/config.yml
+      - ../conf/nakama/example.yml:/nakama/config.yml
+      - ../conf/ssl/ca.pem:/nakama/ca.pem
+      - ../conf/ssl/cert.pem:/nakama/cert.pem
+      - ../conf/ssl/privkey.pem:/nakama/privkey.pem
     expose:
+      - "7348"
       - "7349"
       - "7350"
       - "7351"
+      - "7352"
       - "9100"
-    ports:
-      - "7349:7349"
-      - "7350:7350"
-      - "7351:7351"
+    networks:
+      - nakama-net
     healthcheck:
       test: ["CMD", "/nakama/nakama", "healthcheck"]
       interval: 10s
@@ -84,6 +118,8 @@ services:
   prometheus:
     image: prom/prometheus
     entrypoint: /bin/sh -c
+    networks:
+      - nakama-net
     command: |
       'sh -s <<EOF
         cat > ./prometheus.yml <<EON
@@ -105,5 +141,15 @@ services:
       EOF'
     ports:
       - "9090:9090"
+
 volumes:
   data:
+
+networks:
+  nakama-net:
+    name: nakama-net
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.239.0/25"
+          gateway: "172.16.239.1"
