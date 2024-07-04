@@ -1,13 +1,13 @@
 #!/bin/bash
 
-pushd nakama-plus
+pushd pkgs/nakama-plus
 git grep -lrz doublemo | xargs -0 sed -i '' -e 's/doublemo/whymidnight/g'
 popd
 
-pushd nakama-common
+pushd pkgs/nakama-common
 git grep -lrz doublemo | xargs -0 sed -i '' -e 's/doublemo/whymidnight/g'
 popd
 
-pushd nakama-kit
+pushd pkgs/nakama-kit
 git grep -lrz doublemo | xargs -0 sed -i '' -e 's/doublemo/whymidnight/g'
 popd

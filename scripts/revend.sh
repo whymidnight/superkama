@@ -1,16 +1,16 @@
 #!/bin/bash
 
-pushd nakama-plus
+pushd pkgs/nakama-plus
 go mod tidy
 go mod vendor
 popd
 
-pushd nakama-common
+pushd pkgs/nakama-common
 go mod tidy
 go mod vendor
 popd
 
-pushd nakama-kit
+pushd pkgs/nakama-kit
 go mod tidy
 go mod vendor
 popd
